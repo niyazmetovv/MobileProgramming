@@ -1,0 +1,66 @@
+import 'package:flutter/material.dart';
+
+import '../models/cart.dart';
+
+class CartBody extends StatelessWidget {
+  const CartBody({
+    super.key,
+    required this.lines,
+    required this.onAdd,
+    required this.onQtyChanged,
+  });
+
+  final List<CartLine> lines;
+  final void Function(Product) onAdd;
+  final void Function(String productId, int delta) onQtyChanged;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Wrap(
+              spacing: 8,
+              children: [
+                for (final p in catalog)
+                  ActionChip(
+                    label: Text('${p.name} \$${p.price.toStringAsFixed(0)}'),
+                    onPressed: () => onAdd(p),
+                  ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: lines.isEmpty
+                ? const Center(child: Text('Cart is empty'))
+                : ListView(
+                    children: [
+                      for (final l in lines)
+                        ListTile(
+                          key: ValueKey(l.product.id),
+                          title: Text(l.product.name),
+                          subtitle: Text('\$${l.subtotal.toStringAsFixed(2)}'),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.remove),
+                                onPressed: () => onQtyChanged(l.product.id, -1),
+                              ),
+                              Text('${l.qty}'),
+                              IconButton(
+                                icon: const Icon(Icons.add),
+                                onPressed: () => onQtyChanged(l.product.id, 1),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+          ),
+        ],
+      );
+}
+
+// Part 1 notes
+// 2. CartBody only gets data and callbacks so it has no idea if the page uses setState, Riverpod, Cubit or Bloc, that is why I can reuse it in all four pages
