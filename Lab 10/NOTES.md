@@ -38,3 +38,18 @@ In Flutter `pubspec.yaml`, asset inclusion is non-recursive:
 Answer:
 - `image` and `http` are pure Dart packages. `image` manipulates pixel buffers completely in memory in Dart, and `http` relies on Dart's standard `dart:io` networking library. They do not depend on the Flutter engine or mobile OS native platform channels, so they can execute in a standard, headless Dart VM environment (`dart test`).
 - `tflite_flutter` and `image_picker` are Flutter plugins that bind to platform-specific native binaries and OS capabilities (such as TensorFlow Lite native shared libraries `.so`/`.dylib`, Android Camera intents, or iOS UIImagePickerController). Because they require the Flutter engine runtime and an underlying mobile OS environment, running them in a plain Dart unit test fails unless the platform channels are mocked.
+
+
+## Part 3: The Classifier
+
+### Part 3 Questions & Answers
+
+**Q1: Change the normalisation to `value / 255` and classify the sample again. What happens to the percentages, and why does nothing crash?**
+Answer:
+- What happens: The predicted probabilities become wrong and distorted. The model usually predicts an arbitrary wrong class with near 100% confidence.
+- Why nothing crashes: The input tensor still receives a valid float32 multi-dimensional array of the expected shape `[1, 224, 224, 3]`. Because `value / 255` produces standard 32-bit floats (in the 0.0 to 1.0 range), TensorFlow Lite can execute all matrix multiplications and activations without any shape or type mismatch. However, because the neural network was trained on inputs centered around zero `[-1.0, 1.0]`, the weights compute incorrect activations.
+
+**Q2: Where in the whole app is the number of classes written down? What would you have to edit after retraining with a seventh class?**
+Answer:
+- The class count is never hardcoded anywhere in the Dart code. It is dynamically derived at runtime from `labels.length` after parsing `assets/model/labels.txt`, and the output tensor buffer is allocated dynamically as `[List<double>.filled(labels.length, 0)]`.
+- If a 7th class is added, you do not need to change any Dart code at all. You only replace `labels.txt` and `model_unquant.tflite` in `assets/model/`. The app dynamically adapts to whatever number of lines are in `labels.txt`.
